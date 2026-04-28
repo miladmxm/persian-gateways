@@ -1,9 +1,9 @@
 export interface RequestForGetPaymentPage {
-  merchant_id: string;
+  merchantId: string;
   amount: number;
-  callback_url: string;
+  callBackUrl: string;
   currency?: "IRR" | "IRT";
-  referrer_id?: string;
+  referrerId?: string;
   description: string;
   metadata?: Partial<{ mobile: string; email: string; orderId: string }>;
 }
@@ -45,7 +45,7 @@ export interface ErrorMessage {
 }
 
 export interface VerifyPayment {
-  merchant_id: string;
+  merchantId: string;
   amount: number;
   authority: string;
 }

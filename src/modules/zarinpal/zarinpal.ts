@@ -27,12 +27,29 @@ const defaultFetchConfig: RequestInit = {
 export const requestForGetPaymentPage = async (
   data: RequestForGetPaymentPage,
 ): Promise<ResultRequestInit> => {
+  const {
+    amount,
+    callBackUrl,
+    description,
+    merchantId,
+    currency,
+    metadata,
+    referrerId,
+  } = data;
   try {
     const res = await fetch(
       mergeURL(BASE_URL(true), "v4/payment/request.json"),
       {
         ...defaultFetchConfig,
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          amount,
+          description,
+          merchant_id: merchantId,
+          callback_url: callBackUrl,
+          currency,
+          metadata,
+          referrer_id: referrerId,
+        }),
       },
     );
     const jsonRes = (await res.json()) as ResponseFetchForRequestPay;
@@ -62,16 +79,20 @@ export const requestForGetPaymentPage = async (
   }
 };
 
-export const verifyPayment = async (
-  verifyData: VerifyPayment,
-): Promise<Result<{ isOK: boolean }>> => {
+export const verifyPayment = async ({
+  amount,
+  authority,
+  merchantId,
+}: VerifyPayment): Promise<Result<{ isOK: boolean }>> => {
   try {
     const res = await fetch(
       mergeURL(BASE_URL(true), "v4/payment/verify.json"),
       {
         ...defaultFetchConfig,
         body: JSON.stringify({
-          ...verifyData,
+          amount,
+          authority,
+          merchant_id: merchantId,
         }),
       },
     );
