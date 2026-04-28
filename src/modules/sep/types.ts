@@ -15,3 +15,23 @@ export type ResponseFetchForRequestPay =
       status: 1;
       token: string;
     };
+export interface VerifyPayment {
+  refNum: string;
+  terminalId: string;
+}
+
+export interface ResponseFetchForVerify {
+  TransactionDetail: {
+    RRN: string;
+    RefNum: string;
+    MaskedPan: string;
+    HashedPan: string;
+    TerminalNumber: number;
+    OrginalAmount: number;
+    AffectiveAmount: null;
+    StraceDate: string;
+    StraceNo: string;
+  };
+  ResultCode: number;
+  ResultDescription: string;
+}
