@@ -1,6 +1,6 @@
-import type { ErrorMessageType } from "./types.ts";
+import type { ErrorMessage } from "./types.ts";
 
-const errorMessagesByCodes: Record<number | string, ErrorMessageType> = {
+const errorMessagesByCodes: Record<number | string, ErrorMessage> = {
   "-9": {
     type: "public",
     code: "-9",

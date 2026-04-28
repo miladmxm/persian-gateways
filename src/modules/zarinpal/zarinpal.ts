@@ -6,6 +6,7 @@ import type {
   VerifyPayment,
 } from "./types.ts";
 
+import { catchError } from "../../utils/catch.ts";
 import { createHtmlFormForRedirectToGatewayPage } from "../../utils/makeHTML.ts";
 import { mergeURL } from "../../utils/mergeUrl.ts";
 import { getErrorByCode } from "./errorsMessages.ts";
@@ -21,14 +22,6 @@ const defaultFetchConfig: RequestInit = {
     accept: "application/json",
   },
   method: "POST",
-};
-
-const catchError = (error: unknown): Result<null> => {
-  if (error instanceof Error) {
-    return [{ message: error.message, code: 500 }, null];
-  } else {
-    return [{ message: "internal server error", code: 500 }, null];
-  }
 };
 
 export const requestForGetPaymentPage = async (

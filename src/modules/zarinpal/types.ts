@@ -37,7 +37,7 @@ export interface ResponseFetchForVerify {
     validations: [];
   };
 }
-export interface ErrorMessageType {
+export interface ErrorMessage {
   type: string;
   code: string;
   en: string;
