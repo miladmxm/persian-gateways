@@ -1,4 +1,5 @@
-import type { Result, ResultRequestInit } from "../types.ts";
+import type { Payment, PaymentParams } from "../../index.ts";
+import type { ResultRequestInit, VerifyResult } from "../types.ts";
 import type {
   RequestForGetPaymentPage,
   ResponseFetchForRequestPay,
@@ -24,7 +25,7 @@ const defaultFetchConfig: RequestInit = {
   method: "POST",
 };
 
-export const requestForGetPaymentPage = async (
+const requestForGetPaymentPage = async (
   data: RequestForGetPaymentPage,
 ): Promise<ResultRequestInit> => {
   const {
@@ -79,11 +80,11 @@ export const requestForGetPaymentPage = async (
   }
 };
 
-export const verifyPayment = async ({
+const verifyPayment = async ({
   amount,
   authority,
   merchantId,
-}: VerifyPayment): Promise<Result<{ isOK: boolean }>> => {
+}: VerifyPayment): Promise<VerifyResult> => {
   try {
     const res = await fetch(
       mergeURL(BASE_URL(true), "v4/payment/verify.json"),
@@ -98,7 +99,7 @@ export const verifyPayment = async ({
     );
     const jsonRes = (await res.json()) as ResponseFetchForVerify;
     if (res.ok) {
-      return [null, { isOK: true }];
+      return [null, { isOk: true }];
     } else {
       const code = jsonRes?.errors?.code || res.status;
       return [
@@ -113,3 +114,37 @@ export const verifyPayment = async ({
     return catchError(error);
   }
 };
+
+export class ZarinpalPayment implements Payment {
+  amount: number;
+  callBackUrl: string;
+  gatewayId: string;
+  tracker: string;
+  constructor({ amount, callBackUrl, gatewayId, tracker }: PaymentParams) {
+    this.amount = amount;
+    this.callBackUrl = callBackUrl;
+    this.gatewayId = gatewayId;
+    this.tracker = tracker;
+  }
+  getPayPage() {
+    return requestForGetPaymentPage({
+      amount: this.amount,
+      callBackUrl: this.callBackUrl,
+      merchantId: this.gatewayId,
+      currency: "IRR",
+      description: `Pay for ${this.tracker} `,
+      metadata: { orderId: this.tracker },
+    });
+  }
+  async verify({ url }: { url: string }): Promise<VerifyResult> {
+    const { searchParams } = new URL(url);
+    const authority = searchParams.get("Authority");
+    if (!authority)
+      return [{ code: 500, message: "Authority not found" }, null];
+    return verifyPayment({
+      amount: this.amount,
+      authority,
+      merchantId: this.gatewayId,
+    });
+  }
+}

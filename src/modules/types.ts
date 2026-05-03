@@ -4,3 +4,4 @@ export type Result<T> = [
 ];
 
 export type ResultRequestInit = Result<{ html: string; url: string }>;
+export type VerifyResult = Result<{ isOk: boolean }>;
