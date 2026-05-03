@@ -1,6 +1,6 @@
 {
   "name": "persian-gateways",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "nodejs module for using persian gateways",
   "main": "./src/index.ts",
   "scripts": {
