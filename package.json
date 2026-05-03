@@ -22,10 +22,17 @@
   },
   "type": "module",
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "miladmxm",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/miladmxm/persian-gateways"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
-    "soap": "^1.9.1"
+    "soap": "1.9.1"
   },
   "devDependencies": {
     "@fullstacksjs/eslint-config": "13.10.0",
