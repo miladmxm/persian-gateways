@@ -2,16 +2,43 @@
   "name": "persian-gateways",
   "version": "1.0.0-beta.1",
   "description": "nodejs module for using persian gateways",
-  "main": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./bpm": {
+      "types": "./dist/modules/bpm/bpm.d.ts",
+      "import": "./dist/modules/bpm/bpm.js"
+    },
+    "./sep": {
+      "types": "./dist/modules/sep/sep.d.ts",
+      "import": "./dist/modules/sep/sep.js"
+    },
+    "./zarinpal": {
+      "types": "./dist/modules/zarinpal/zarinpal.d.ts",
+      "import": "./dist/modules/zarinpal/zarinpal.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
+    "build": "tsc -p tsconfig.build.json",
     "dev": "node --watch --env-file-if-exists=.env src/index.ts",
     "type-check": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier . --write",
+    "prepack": "npm run type-check && npm run lint && npm run build",
+    "pack:dry": "npm pack --dry-run",
     "prepare": "husky",
     "start": "node --env-file=.env src/index.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npm run type-check"
   },
   "lint-staged": {
     "*.{js,ts,jsx,tsx}": [
@@ -21,7 +48,15 @@
     ]
   },
   "type": "module",
-  "keywords": [],
+  "keywords": [
+    "payment",
+    "gateway",
+    "iran",
+    "persian",
+    "zarinpal",
+    "mellat",
+    "sep"
+  ],
   "author": "miladmxm",
   "license": "MIT",
   "repository": {
@@ -31,6 +66,7 @@
   "publishConfig": {
     "access": "public"
   },
+  "sideEffects": false,
   "dependencies": {
     "soap": "1.9.1"
   },

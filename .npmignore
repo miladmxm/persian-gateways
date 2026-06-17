@@ -1,5 +1,21 @@
-node_modules/
+# package.json "files" controls the publish surface.
+# Keep this as a fallback if that whitelist changes later.
+
 .git/
+.github/
+.husky/
+.idea/
 .vscode/
-*.log
+
+node_modules/
+coverage/
+src/
 tests/
+
+.env*
+*.log
+*.tgz
+
+eslint.config.js
+tsconfig.json
+tsconfig.build.json
