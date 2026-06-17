@@ -33,10 +33,11 @@ const requestForGetPaymentPage = async (
     currency,
     metadata,
     referrerId,
+    sandbox,
   } = data;
   try {
     const { response, body } = await postJson<ResponseFetchForRequestPay>(
-      mergeURL(BASE_URL(true), "v4/payment/request.json"),
+      mergeURL(BASE_URL(sandbox), "v4/payment/request.json"),
       {
         amount,
         description,
@@ -49,7 +50,7 @@ const requestForGetPaymentPage = async (
     );
     if (response.ok) {
       const { href } = mergeURL(
-        BASE_URL(true),
+        BASE_URL(sandbox),
         `StartPay/${body.data.authority}`,
       );
       return createRedirectPaymentResult({ url: href });
@@ -71,10 +72,11 @@ const verifyPayment = async ({
   amount,
   authority,
   merchantId,
+  sandbox,
 }: VerifyPayment): Promise<VerifyResult> => {
   try {
     const { response, body } = await postJson<ResponseFetchForVerify>(
-      mergeURL(BASE_URL(true), "v4/payment/verify.json"),
+      mergeURL(BASE_URL(sandbox), "v4/payment/verify.json"),
       {
         amount,
         authority,
@@ -102,12 +104,20 @@ export class ZarinpalPayment implements Payment {
   amount: number;
   callBackUrl: string;
   gatewayId: string;
+  sandbox?: boolean | undefined;
   tracker: string;
-  constructor({ amount, callBackUrl, gatewayId, tracker }: PaymentParams) {
+  constructor({
+    amount,
+    callBackUrl,
+    gatewayId,
+    tracker,
+    sandbox,
+  }: PaymentParams) {
     this.amount = amount;
     this.callBackUrl = callBackUrl;
     this.gatewayId = gatewayId;
     this.tracker = tracker;
+    this.sandbox = sandbox;
   }
   getPayPage() {
     return requestForGetPaymentPage({
@@ -117,6 +127,7 @@ export class ZarinpalPayment implements Payment {
       currency: "IRR",
       description: `Pay for ${this.tracker} `,
       metadata: { orderId: this.tracker },
+      sandbox: this.sandbox,
     });
   }
   async verify({ url }: { url: string }): Promise<VerifyResult> {
@@ -128,6 +139,7 @@ export class ZarinpalPayment implements Payment {
       amount: this.amount,
       authority,
       merchantId: this.gatewayId,
+      sandbox: this.sandbox,
     });
   }
 }
