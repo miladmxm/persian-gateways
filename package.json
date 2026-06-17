@@ -9,6 +9,10 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./bmi": {
+      "types": "./dist/modules/bmi/bmi.d.ts",
+      "import": "./dist/modules/bmi/bmi.js"
+    },
     "./bpm": {
       "types": "./dist/modules/bpm/bpm.d.ts",
       "import": "./dist/modules/bpm/bpm.js"
@@ -54,6 +58,9 @@
     "iran",
     "persian",
     "zarinpal",
+    "bmi",
+    "sadad",
+    "bank-melli",
     "mellat",
     "sep"
   ],

@@ -1,3 +1,5 @@
+export { BmiPayment } from "./modules/bmi/bmi.ts";
+export * as bmi from "./modules/bmi/bmi.ts";
 export { BpmPayment } from "./modules/bpm/bpm.ts";
 export * as bpm from "./modules/bpm/bpm.ts";
 export { SepPayment } from "./modules/sep/sep.ts";
