@@ -1,6 +1,11 @@
 import soap from "soap";
 
-import type { Result, ResultRequestInit } from "../types.ts";
+import type {
+  Payment,
+  PaymentParams,
+  ResultRequestInit,
+  VerifyResult,
+} from "../types.ts";
 import type {
   RequestForGetPaymentPage,
   SettleTransction,
@@ -8,7 +13,7 @@ import type {
 } from "./types.ts";
 
 import { catchError } from "../../utils/catch.ts";
-import { createHtmlFormForRedirectToGatewayPage } from "../../utils/makeHTML.ts";
+import { createRedirectPaymentResult } from "../../utils/payment.ts";
 import { getErrorByCode } from "./errorsMessages.ts";
 
 const BASE_URL = (isSandbox: boolean = false) =>
@@ -47,20 +52,14 @@ export const requestForGetPaymentPage = async ({
       callBackUrl,
       payerId: 0,
     };
-    const res = await client.bpPayRequestAsync(requestData)[0].return;
+    const res = (await client.bpPayRequestAsync(requestData))[0].return;
     const [status, token] = res.split(",");
     if (status === "0") {
       const url = "https://bpm.shaparak.ir/pgwchannel/startpay.mellat";
-      return [
-        null,
-        {
-          html: createHtmlFormForRedirectToGatewayPage({
-            url,
-            metadata: { RefId: token },
-          }),
-          url,
-        },
-      ];
+      return createRedirectPaymentResult({
+        url,
+        metadata: { RefId: token },
+      });
     } else {
       const message = getErrorByCode(status);
       return [{ message, code: status }, null];
@@ -72,14 +71,14 @@ export const requestForGetPaymentPage = async ({
 
 const settleTransction = async (
   settleData: SettleTransction,
-): Promise<Result<{ isOK: boolean }>> => {
+): Promise<VerifyResult> => {
   try {
     const client = await getClient();
     const res: string | undefined = (
       await client.bpSettleRequestAsync(settleData)
     )[0].return;
     if (res === "0") {
-      return [null, { isOK: true }];
+      return [null, { isOk: true }];
     } else {
       return [{ message: "did not settle the payment", code: res }, null];
     }
@@ -94,7 +93,7 @@ export const verifyPayment = async ({
   saleReferenceId,
   terminalId,
   username,
-}: VerifyPayment): Promise<Result<{ isOK: boolean }>> => {
+}: VerifyPayment): Promise<VerifyResult> => {
   try {
     const verifyData = {
       terminalId,
@@ -126,3 +125,74 @@ export const verifyPayment = async ({
     return catchError(error);
   }
 };
+
+interface BpmPaymentParams extends PaymentParams {
+  password: string;
+  username: string;
+}
+
+const getNumberParam = (value: unknown) => {
+  if (typeof value === "number") return value;
+  if (typeof value !== "string") return undefined;
+
+  const numberValue = Number(value);
+  return Number.isNaN(numberValue) ? undefined : numberValue;
+};
+
+export class BpmPayment implements Payment {
+  amount: number;
+  callBackUrl: string;
+  gatewayId: string;
+  password: string;
+  tracker: string;
+  username: string;
+
+  constructor({
+    amount,
+    callBackUrl,
+    gatewayId,
+    tracker,
+    username,
+    password,
+  }: BpmPaymentParams) {
+    this.amount = amount;
+    this.callBackUrl = callBackUrl;
+    this.gatewayId = gatewayId;
+    this.tracker = tracker;
+    this.username = username;
+    this.password = password;
+  }
+
+  getPayPage() {
+    return requestForGetPaymentPage({
+      amount: this.amount,
+      callBackUrl: this.callBackUrl,
+      terminalId: Number(this.gatewayId),
+      orderId: Number(this.tracker),
+      username: this.username,
+      password: this.password,
+      description: `Pay for ${this.tracker}`,
+    });
+  }
+
+  async verify({
+    body,
+  }: {
+    url: string;
+    body?: Record<string, unknown>;
+  }): Promise<VerifyResult> {
+    const saleReferenceId = getNumberParam(body?.SaleReferenceId);
+
+    if (!saleReferenceId) {
+      return [{ code: 500, message: "SaleReferenceId not found" }, null];
+    }
+
+    return verifyPayment({
+      terminalId: Number(this.gatewayId),
+      orderId: Number(this.tracker),
+      username: this.username,
+      password: this.password,
+      saleReferenceId,
+    });
+  }
+}

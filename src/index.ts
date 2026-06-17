@@ -1,15 +1,15 @@
-import type { ResultRequestInit, VerifyResult } from "./modules/types.ts";
+export { BpmPayment } from "./modules/bpm/bpm.ts";
+export * as bpm from "./modules/bpm/bpm.ts";
+export { SepPayment } from "./modules/sep/sep.ts";
+export * as sep from "./modules/sep/sep.ts";
 
-export interface PaymentParams {
-  amount: number;
-  tracker: string;
-  callBackUrl: string;
-  gatewayId: string;
-}
-export interface Payment extends PaymentParams {
-  getPayPage: () => Promise<ResultRequestInit>;
-  verify: (data: {
-    url: string;
-    body?: Record<string, unknown>;
-  }) => Promise<VerifyResult>;
-}
+export type {
+  Payment,
+  PaymentParams,
+  Result,
+  ResultRequestInit,
+  VerifyResult,
+} from "./modules/types.ts";
+
+export { ZarinpalPayment } from "./modules/zarinpal/zarinpal.ts";
+export * as zarinpal from "./modules/zarinpal/zarinpal.ts";

@@ -1,4 +1,9 @@
-import type { Result, ResultRequestInit } from "../types.ts";
+import type {
+  Payment,
+  PaymentParams,
+  ResultRequestInit,
+  VerifyResult,
+} from "../types.ts";
 import type {
   RequestForGetPaymentPage,
   ResponseFetchForRequestPay,
@@ -7,50 +12,34 @@ import type {
 } from "./types.ts";
 
 import { catchError } from "../../utils/catch.ts";
-import { createHtmlFormForRedirectToGatewayPage } from "../../utils/makeHTML.ts";
+import { postJson } from "../../utils/http.ts";
+import { createRedirectPaymentResult } from "../../utils/payment.ts";
 
 const tokenUrl = "https://sep.shaparak.ir/onlinepg/onlinepg";
 const payUrl = "https://sep.shaparak.ir/OnlinePG/OnlinePG";
 const verifyUrl =
   "https://sep.shaparak.ir/verifyTxnRandomSessionkey/ipg/VerifyTransaction";
 
-const defaultFetchConfig: RequestInit = {
-  headers: {
-    "content-type": "application/json",
-    accept: "application/json",
-  },
-  method: "POST",
-};
 export const requestForGetPaymentPage = async (
   data: RequestForGetPaymentPage,
 ): Promise<ResultRequestInit> => {
   const { amount, callBackUrl, resNum, terminalId, cellNumber } = data;
   try {
-    const res = await fetch(tokenUrl, {
-      ...defaultFetchConfig,
-      body: JSON.stringify({
-        Amount: amount,
-        Action: "Token",
-        TerminalId: terminalId,
-        ResNum: resNum,
-        RedirectURL: callBackUrl,
-        CellNumber: cellNumber,
-      }),
+    const { body } = await postJson<ResponseFetchForRequestPay>(tokenUrl, {
+      Amount: amount,
+      Action: "Token",
+      TerminalId: terminalId,
+      ResNum: resNum,
+      RedirectURL: callBackUrl,
+      CellNumber: cellNumber,
     });
-    const jsonRes = (await res.json()) as ResponseFetchForRequestPay;
-    if (jsonRes.status === 1) {
-      return [
-        null,
-        {
-          url: payUrl,
-          html: createHtmlFormForRedirectToGatewayPage({
-            url: payUrl,
-            metadata: { Token: jsonRes.token, GetMethod: "" },
-          }),
-        },
-      ];
+    if (body.status === 1) {
+      return createRedirectPaymentResult({
+        url: payUrl,
+        metadata: { Token: body.token, GetMethod: "" },
+      });
     }
-    return [{ message: jsonRes.errorDesc, code: jsonRes.errorCode }, null];
+    return [{ message: body.errorDesc, code: body.errorCode }, null];
   } catch (error) {
     return catchError(error);
   }
@@ -59,23 +48,19 @@ export const requestForGetPaymentPage = async (
 export const verifyPayment = async ({
   refNum,
   terminalId,
-}: VerifyPayment): Promise<Result<{ isOK: boolean }>> => {
+}: VerifyPayment): Promise<VerifyResult> => {
   try {
-    const res = await fetch(verifyUrl, {
-      ...defaultFetchConfig,
-      body: JSON.stringify({
-        refNum,
-        TerminalNumber: terminalId,
-      }),
+    const { body } = await postJson<ResponseFetchForVerify>(verifyUrl, {
+      refNum,
+      TerminalNumber: terminalId,
     });
-    const jsonRes = (await res.json()) as ResponseFetchForVerify;
-    if (jsonRes.ResultCode === 0) {
-      return [null, { isOK: true }];
+    if (body.ResultCode === 0) {
+      return [null, { isOk: true }];
     }
     return [
       {
-        message: jsonRes.ResultDescription,
-        code: jsonRes.ResultCode,
+        message: body.ResultDescription,
+        code: body.ResultCode,
       },
       null,
     ];
@@ -83,3 +68,56 @@ export const verifyPayment = async ({
     return catchError(error);
   }
 };
+
+const getStringParam = (value: unknown) =>
+  typeof value === "string" ? value : undefined;
+
+export class SepPayment implements Payment {
+  amount: number;
+  callBackUrl: string;
+  cellNumber?: string;
+  gatewayId: string;
+  tracker: string;
+
+  constructor({
+    amount,
+    callBackUrl,
+    gatewayId,
+    tracker,
+    cellNumber,
+  }: PaymentParams & { cellNumber?: string }) {
+    this.amount = amount;
+    this.callBackUrl = callBackUrl;
+    this.gatewayId = gatewayId;
+    this.tracker = tracker;
+    this.cellNumber = cellNumber;
+  }
+
+  getPayPage() {
+    return requestForGetPaymentPage({
+      amount: this.amount,
+      callBackUrl: this.callBackUrl,
+      terminalId: this.gatewayId,
+      resNum: this.tracker,
+      cellNumber: this.cellNumber,
+    });
+  }
+
+  async verify({
+    url,
+    body,
+  }: {
+    url: string;
+    body?: Record<string, unknown>;
+  }): Promise<VerifyResult> {
+    const searchParams = new URL(url).searchParams;
+    const refNum = getStringParam(body?.RefNum) || searchParams.get("RefNum");
+
+    if (!refNum) return [{ code: 500, message: "RefNum not found" }, null];
+
+    return verifyPayment({
+      refNum,
+      terminalId: this.gatewayId,
+    });
+  }
+}
