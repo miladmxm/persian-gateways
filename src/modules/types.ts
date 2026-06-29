@@ -12,6 +12,7 @@ export interface PaymentParams {
   callBackUrl: string;
   gatewayId: string;
   sandbox?: boolean;
+  baseUrl?: string;
 }
 
 export interface Payment extends PaymentParams {

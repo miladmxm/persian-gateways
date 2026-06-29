@@ -6,6 +6,7 @@ export interface RequestForGetPaymentPage {
   secretKey: string;
   terminalId: string;
   additionalData?: string;
+  baseUrl?: string;
 }
 
 export interface ResponseFetchForRequestPay {
@@ -17,6 +18,7 @@ export interface ResponseFetchForRequestPay {
 export interface VerifyPayment {
   secretKey: string;
   token: string;
+  baseUrl?: string;
 }
 
 export interface ResponseFetchForVerify {

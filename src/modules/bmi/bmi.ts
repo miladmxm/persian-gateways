@@ -15,11 +15,13 @@ import type {
 
 import { catchError } from "../../utils/catch.ts";
 import { postJson } from "../../utils/http.ts";
+import { mergeURL } from "../../utils/mergeUrl.ts";
 import { createRedirectPaymentResult } from "../../utils/payment.ts";
 
-const tokenUrl = "https://sadad.shaparak.ir/vpg/api/v0/Request/PaymentRequest";
-const payUrl = "https://sadad.shaparak.ir/VPG/Purchase";
-const verifyUrl = "https://sadad.shaparak.ir/vpg/api/v0/Advice/Verify";
+const BASE_URL = "https://sadad.shaparak.ir";
+const TOKEN_PATH = "/vpg/api/v0/Request/PaymentRequest";
+const PAY_PATH = "/VPG/Purchase";
+const VERIFY_PATH = "/vpg/api/v0/Advice/Verify";
 
 const pad = (text: string, padSize: number) => {
   const remainingSpace = padSize - (text.length % padSize || padSize);
@@ -64,22 +66,26 @@ export const requestForGetPaymentPage = async ({
   orderId,
   secretKey,
   terminalId,
+  baseUrl = BASE_URL,
 }: RequestForGetPaymentPage): Promise<ResultRequestInit> => {
   try {
-    const { body } = await postJson<ResponseFetchForRequestPay>(tokenUrl, {
-      TerminalId: terminalId,
-      MerchantId: merchantId,
-      Amount: amount,
-      SignData: encryptDes3(`${terminalId};${orderId};${amount}`, secretKey),
-      ReturnUrl: callBackUrl,
-      LocalDateTime: getLocalDateTime(),
-      OrderId: orderId,
-      AdditionalData: additionalData,
-    });
+    const { body } = await postJson<ResponseFetchForRequestPay>(
+      mergeURL(baseUrl, TOKEN_PATH),
+      {
+        TerminalId: terminalId,
+        MerchantId: merchantId,
+        Amount: amount,
+        SignData: encryptDes3(`${terminalId};${orderId};${amount}`, secretKey),
+        ReturnUrl: callBackUrl,
+        LocalDateTime: getLocalDateTime(),
+        OrderId: orderId,
+        AdditionalData: additionalData,
+      },
+    );
 
     if (String(body.ResCode) === "0" && body.Token) {
       return createRedirectPaymentResult({
-        url: payUrl,
+        url: mergeURL(baseUrl, PAY_PATH).href,
         method: "GET",
         metadata: { Token: body.Token },
       });
@@ -100,12 +106,16 @@ export const requestForGetPaymentPage = async ({
 export const verifyPayment = async ({
   secretKey,
   token,
+  baseUrl = BASE_URL,
 }: VerifyPayment): Promise<VerifyResult> => {
   try {
-    const { body } = await postJson<ResponseFetchForVerify>(verifyUrl, {
-      Token: token,
-      SignData: encryptDes3(token, secretKey),
-    });
+    const { body } = await postJson<ResponseFetchForVerify>(
+      mergeURL(baseUrl, VERIFY_PATH),
+      {
+        Token: token,
+        SignData: encryptDes3(token, secretKey),
+      },
+    );
 
     if (String(body.ResCode) === "0") {
       return [null, { isOk: true }];
@@ -135,6 +145,7 @@ const getStringParam = (value: unknown) =>
 export class BmiPayment implements Payment {
   additionalData?: string;
   amount: number;
+  baseUrl?: string;
   callBackUrl: string;
   gatewayId: string;
   secretKey: string;
@@ -149,8 +160,10 @@ export class BmiPayment implements Payment {
     secretKey,
     terminalId,
     tracker,
+    baseUrl,
   }: BmiPaymentParams) {
     this.amount = amount;
+    this.baseUrl = baseUrl;
     this.callBackUrl = callBackUrl;
     this.gatewayId = gatewayId;
     this.secretKey = secretKey;
@@ -168,6 +181,7 @@ export class BmiPayment implements Payment {
       orderId: this.tracker,
       secretKey: this.secretKey,
       terminalId: this.terminalId,
+      baseUrl: this.baseUrl,
     });
   }
 
@@ -186,6 +200,7 @@ export class BmiPayment implements Payment {
     return verifyPayment({
       secretKey: this.secretKey,
       token,
+      baseUrl: this.baseUrl,
     });
   }
 }

@@ -34,10 +34,11 @@ const requestForGetPaymentPage = async (
     metadata,
     referrerId,
     sandbox,
+    baseUrl = BASE_URL(sandbox),
   } = data;
   try {
     const { response, body } = await postJson<ResponseFetchForRequestPay>(
-      mergeURL(BASE_URL(sandbox), "v4/payment/request.json"),
+      mergeURL(baseUrl, "v4/payment/request.json"),
       {
         amount,
         description,
@@ -49,10 +50,7 @@ const requestForGetPaymentPage = async (
       },
     );
     if (response.ok) {
-      const { href } = mergeURL(
-        BASE_URL(sandbox),
-        `StartPay/${body.data.authority}`,
-      );
+      const { href } = mergeURL(baseUrl, `StartPay/${body.data.authority}`);
       return createRedirectPaymentResult({ url: href });
     } else {
       return [
@@ -73,10 +71,11 @@ const verifyPayment = async ({
   authority,
   merchantId,
   sandbox,
+  baseUrl = BASE_URL(sandbox),
 }: VerifyPayment): Promise<VerifyResult> => {
   try {
     const { response, body } = await postJson<ResponseFetchForVerify>(
-      mergeURL(BASE_URL(sandbox), "v4/payment/verify.json"),
+      mergeURL(baseUrl, "v4/payment/verify.json"),
       {
         amount,
         authority,
@@ -102,6 +101,7 @@ const verifyPayment = async ({
 
 export class ZarinpalPayment implements Payment {
   amount: number;
+  baseUrl?: string;
   callBackUrl: string;
   gatewayId: string;
   sandbox?: boolean | undefined;
@@ -112,8 +112,10 @@ export class ZarinpalPayment implements Payment {
     gatewayId,
     tracker,
     sandbox,
+    baseUrl,
   }: PaymentParams) {
     this.amount = amount;
+    this.baseUrl = baseUrl;
     this.callBackUrl = callBackUrl;
     this.gatewayId = gatewayId;
     this.tracker = tracker;
@@ -128,6 +130,7 @@ export class ZarinpalPayment implements Payment {
       description: `Pay for ${this.tracker} `,
       metadata: { orderId: this.tracker },
       sandbox: this.sandbox,
+      baseUrl: this.baseUrl,
     });
   }
   async verify({ url }: { url: string }): Promise<VerifyResult> {
@@ -140,6 +143,7 @@ export class ZarinpalPayment implements Payment {
       authority,
       merchantId: this.gatewayId,
       sandbox: this.sandbox,
+      baseUrl: this.baseUrl,
     });
   }
 }

@@ -7,6 +7,7 @@ export interface RequestForGetPaymentPage {
   description: string;
   metadata?: Partial<{ mobile: string; email: string; orderId: string }>;
   sandbox?: boolean;
+  baseUrl?: string;
 }
 export interface ResponseFetchForRequestPay {
   data: {
@@ -50,4 +51,5 @@ export interface VerifyPayment {
   amount: number;
   authority: string;
   sandbox?: boolean;
+  baseUrl?: string;
 }

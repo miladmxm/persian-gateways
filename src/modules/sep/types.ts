@@ -4,6 +4,7 @@ export interface RequestForGetPaymentPage {
   resNum: string;
   callBackUrl: string;
   cellNumber?: string;
+  baseUrl?: string;
 }
 export type ResponseFetchForRequestPay =
   | {
@@ -18,6 +19,7 @@ export type ResponseFetchForRequestPay =
 export interface VerifyPayment {
   refNum: string;
   terminalId: string;
+  baseUrl?: string;
 }
 
 export interface ResponseFetchForVerify {

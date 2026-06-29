@@ -9,9 +9,11 @@ export interface RequestForGetPaymentPage extends AuthData {
   amount: number;
   description?: string;
   callBackUrl: string;
+  baseUrl?: string;
 }
 export interface VerifyPayment extends AuthData {
   saleReferenceId: number;
+  baseUrl?: string;
 }
 
 export interface SettleTransction {
@@ -21,4 +23,5 @@ export interface SettleTransction {
   userName: string;
   userPassword: string;
   saleReferenceId: number;
+  baseUrl?: string;
 }

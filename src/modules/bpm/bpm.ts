@@ -13,15 +13,17 @@ import type {
 } from "./types.ts";
 
 import { catchError } from "../../utils/catch.ts";
+import { mergeURL } from "../../utils/mergeUrl.ts";
 import { createRedirectPaymentResult } from "../../utils/payment.ts";
 import { getErrorByCode } from "./errorsMessages.ts";
 
 const BASE_URL = (isSandbox: boolean = false) =>
-  isSandbox
-    ? "https://pgw.dev.bpmellat.ir/pgwchannel/services/pgw?wsdl"
-    : "https://bpm.shaparak.ir/pgwchannel/services/pgw?wsdl";
+  isSandbox ? "https://pgw.dev.bpmellat.ir" : "https://bpm.shaparak.ir";
+const WSDL_PATH = "/pgwchannel/services/pgw?wsdl";
+const PAY_PATH = "/pgwchannel/startpay.mellat";
 
-const getClient = () => soap.createClientAsync(BASE_URL());
+const getClient = (baseUrl = BASE_URL()) =>
+  soap.createClientAsync(mergeURL(baseUrl, WSDL_PATH).href);
 
 const getDateAndTime = () => {
   return {
@@ -38,9 +40,10 @@ export const requestForGetPaymentPage = async ({
   username,
   password,
   description,
+  baseUrl,
 }: RequestForGetPaymentPage): Promise<ResultRequestInit> => {
   try {
-    const client = await getClient();
+    const client = await getClient(baseUrl);
     const requestData = {
       terminalId,
       userName: username,
@@ -55,7 +58,7 @@ export const requestForGetPaymentPage = async ({
     const res = (await client.bpPayRequestAsync(requestData))[0].return;
     const [status, token] = res.split(",");
     if (status === "0") {
-      const url = "https://bpm.shaparak.ir/pgwchannel/startpay.mellat";
+      const url = mergeURL(baseUrl ?? BASE_URL(), PAY_PATH).href;
       return createRedirectPaymentResult({
         url,
         metadata: { RefId: token },
@@ -73,9 +76,17 @@ const settleTransction = async (
   settleData: SettleTransction,
 ): Promise<VerifyResult> => {
   try {
-    const client = await getClient();
+    const client = await getClient(settleData.baseUrl);
+    const requestData = {
+      terminalId: settleData.terminalId,
+      orderId: settleData.orderId,
+      saleOrderId: settleData.saleOrderId,
+      userName: settleData.userName,
+      userPassword: settleData.userPassword,
+      saleReferenceId: settleData.saleReferenceId,
+    };
     const res: string | undefined = (
-      await client.bpSettleRequestAsync(settleData)
+      await client.bpSettleRequestAsync(requestData)
     )[0].return;
     if (res === "0") {
       return [null, { isOk: true }];
@@ -93,6 +104,7 @@ export const verifyPayment = async ({
   saleReferenceId,
   terminalId,
   username,
+  baseUrl,
 }: VerifyPayment): Promise<VerifyResult> => {
   try {
     const verifyData = {
@@ -103,17 +115,17 @@ export const verifyPayment = async ({
       userPassword: password,
       saleReferenceId,
     };
-    const client = await getClient();
+    const client = await getClient(baseUrl);
 
     const verifyRes = (await client.bpVerifyRequestAsync(verifyData))[0].return;
     if (verifyRes === "0") {
-      return settleTransction(verifyData);
+      return settleTransction({ ...verifyData, baseUrl });
     }
 
     const resInquiry = (await client.bpInquiryRequestAsync(verifyData))[0]
       .return;
     if (resInquiry === "0") {
-      return settleTransction(verifyData);
+      return settleTransction({ ...verifyData, baseUrl });
     }
 
     const reversalRes: number | undefined = (
@@ -141,6 +153,7 @@ const getNumberParam = (value: unknown) => {
 
 export class BpmPayment implements Payment {
   amount: number;
+  baseUrl?: string;
   callBackUrl: string;
   gatewayId: string;
   password: string;
@@ -154,8 +167,10 @@ export class BpmPayment implements Payment {
     tracker,
     username,
     password,
+    baseUrl,
   }: BpmPaymentParams) {
     this.amount = amount;
+    this.baseUrl = baseUrl;
     this.callBackUrl = callBackUrl;
     this.gatewayId = gatewayId;
     this.tracker = tracker;
@@ -172,6 +187,7 @@ export class BpmPayment implements Payment {
       username: this.username,
       password: this.password,
       description: `Pay for ${this.tracker}`,
+      baseUrl: this.baseUrl,
     });
   }
 
@@ -193,6 +209,7 @@ export class BpmPayment implements Payment {
       username: this.username,
       password: this.password,
       saleReferenceId,
+      baseUrl: this.baseUrl,
     });
   }
 }
